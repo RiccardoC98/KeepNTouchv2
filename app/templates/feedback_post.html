@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>Feedback</h1>
+
+    <div class="content-section">
+            <form method="POST" action="">
+            {{  formpage.hidden_tag()}}
+
+
+            <fieldset class="form-group">
+                <legend class="border-botton mb-4">Leave a feedback for {{ session['event_name'] }} by {{ session['name'] }}</legend>
+
+                <div class="form-group ">
+                    {{ formpage.title.label(class="form-control-lable") }}
+                    {% if formpage.title.errors %}
+                        {{ formpage.title(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                        {% for eroor in formpage.title.errors %}
+                            <span>{{ eroor }}</span>
+                        {% endfor %}
+                        </div>
+                    {% else %}
+                    {{ formpage.title(class="form-control form-control-lg") }}
+                    {% endif %}
+                </div>
+
+
+
+                <div class="form-group">
+
+                    {{ formpage.content.label(class="form-control-lable") }}
+                    {% if formpage.content.errors %}
+                        {{ formpage.content(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                        {% for eroor in formpage.content.errors %}
+                            <span>{{ eroor }}</span>
+                        {% endfor %}
+                        </div>
+                    {% else %}
+                    {{ formpage.content(class="form-control form-control-lg") }}
+                    {% endif %}
+                </div>
+
+                </div>
+
+                <div class="form-group ">
+                    {{ formpage.submit(class="btn btn-outline-info") }}
+                </div>
+
+            </fieldset>
+    </form>
+
+
+
+{% endblock content %}
+
+</div>
