@@ -6,9 +6,9 @@ from sqlalchemy import and_, event
 import secrets
 from PIL import Image
 from config import Config
-
+from flask_uploads import UploadSet, configure_uploads, IMAGES, patch_request_class
 from app import app, db, bcrypt
-from app.forms import Formname, formCreateEvent, LoginForm, confirmParticipation, deleteParticipation, UploadForm, UpdateAccount, EditProfileForm, LeaveFeedback,FeedbackForm
+from app.forms import Formname, formCreateEvent, LoginForm, confirmParticipation, deleteParticipation, EditProfileForm, LeaveFeedback,FeedbackForm
 from app.models import Student, Event, BusinessPartner, partecipation, Feedback
 import forms
 
@@ -88,29 +88,10 @@ def feedback():
 
         db.session.add(feedback)
         db.session.commit()
-
-        print "Your feedback's been posted bro"
         flash('Your feedback has been posted', 'success')
         return redirect(url_for('home'))
 
     return render_template('feedback_post.html', formpage = formpage)
-
-
-@app.route("/upload",methods=["GET","POST"])
-def upload():
-    if session.get('id'):
-        if not os.path.exists('static/'+ str(session.get('id'))):
-            os.makedirs('static/'+ str(session.get('id')))
-        file_url = os.listdir('static/'+ str(session.get('id')))
-        file_url = [ str(session.get('id')) +"/"+ file for file in file_url]
-        formupload = UploadForm()
-
-        if formupload.validate_on_submit():
-            filename = photos.save(formupload.file.data,name=str(session.get('id'))+'.jpg',folder=str(session.get('id')))
-            file_url.append(filename)
-        return render_template("upload.html",formupload=formupload,filelist=file_url) # ,filelist=file_url
-    else:
-       return redirect('login')
 
 @app.route("/about")
 def about():
@@ -169,10 +150,9 @@ def login():
                            email=session.get('email',False) ,
                            title='Login ')
 
-
-
 @app.route('/logout')
 def logout():
+    current_user.image_file = ""
     logout_user()
     session.clear()
     return redirect(url_for('home'))
@@ -204,43 +184,15 @@ def createEvent():
         return redirect('login')
     #if a student then you can't
 
-def save_picture(form_picture):
-    random_hex =os.urandom(10).encode('hex')
-    print "this shit ova he" + random_hex
-    _, f_ext = os.path.splitext(form_picture.filename)
-    picture_fn = random_hex + f_ext
-    picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_fn)
-
-    output_size = (125, 125)
-    i = Image.open(form_picture)
-    i.thumbnail(output_size)
-    i.save(picture_path)
-
-    return picture_fn
-
+photos = UploadSet('photos', IMAGES)
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
-    form = UpdateAccount()
 
-    posts =[
-        {'author': Student, 'body': 'Test post #1'},
-        {'author' : Student, 'body': 'Test post #2'}
-    ]
+    image_file = "/static/default.jpeg"
     if current_user.is_authenticated:
         st = Student.query.filter_by(email=current_user.email).first_or_404()
-        if form.validate_on_submit():
-            if form.picture.data:
-                picture_file = save_picture(form.picture.data)
-                current_user.image_file = picture_file
-            current_user.name = form.name.data 
-            db.session.commit()
-            flash('Your account has been updated', 'success')
-            return redirect(url_for('profile'))
-        elif request.method =='GET':
-            form.name.data = current_user.name
-        image_file = url_for('static', filename='profilepics/' + current_user.image_file)
-        return render_template('profile.html',student=st, form=form, image_file=image_file, posts=posts)
+        return render_template('profile.html',student=st, image_file=image_file)
     else:
         return redirect('login')
 
@@ -250,9 +202,6 @@ def profile():
 def edit_profile():
     form = EditProfileForm()
     if form.validate_on_submit():
-        if form.picture.data:
-            picture_file = save_picture(form.picture.data)
-            current_user.image_file = picture_file
         current_user.name = form.name.data
         current_user.about_me = form.about_me.data
         db.session.commit()
@@ -263,45 +212,6 @@ def edit_profile():
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile',
                            form=form)
-
-@app.route('/follow/<name>', methods=['POST'])
-@login_required
-def follow(name):
-    form = EditProfileForm()
-    if form.validate_on_submit():
-        user = Student.query.filter_by(name=name).first()
-        if user is None:
-            flash('User {} not found.'.format(name))
-            return redirect(url_for('profile'))
-        if user == current_user:
-            flash('You cannot follow yourself!')
-            return redirect(url_for('profile'))
-        current_user.follow(user)
-        db.session.commit()
-        flash('You are following {}!'.format(name))
-        return redirect(url_for('profile'))
-    else:
-        return redirect(url_for('profile'))
-
-
-@app.route('/unfollow/<name>', methods=['POST'])
-@login_required
-def unfollow(name):
-    form = EditProfileForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(name=name).first()
-        if user is None:
-            flash('User {} not found.'.format(name))
-            return redirect(url_for('profile'))
-        if user == current_user:
-            flash('You cannot unfollow yourself!')
-            return redirect(url_for('profile'))
-        current_user.unfollow(user)
-        db.session.commit()
-        flash('You are not following {}.'.format(name))
-        return redirect(url_for('profile'))
-    else:
-        return redirect(url_for('profile'))
 
 @app.route('/events/<id>')
 @login_required
@@ -318,28 +228,6 @@ def welcome():
 @app.route("/map")
 def map():
     return render_template("map.html")
-
-
-#app.route('/leave_feedback', methods=['GET', 'POST'])
-#@login_required
-#def  leave_feedback():
- #  form = FeedbackForm()
-  #  if form.validate_on_submit():
-   #     if form.title.data:
-
-    #    current_user.title = form.title.data
-     #   current_user.content = form.content.data
-      #  db.session.commit()
-       # flash('Your changes have been saved.')
-       # return redirect(url_for('index'))
-    #elif request.method == 'GET':
-     #   form.title.data = current_user.title
-      #  form.content.data = current_user.content
-    #return render_template('feedback_post', title='Edit Profile',
-     #                      form=form)
-
-########
-
 
 def send_mail(to,subject,template,**kwargs):
     msg=Message(subject,recipients=[to],sender=app.config['MAIL_USERNAME'])

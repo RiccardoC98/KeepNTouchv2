@@ -19,22 +19,6 @@
             {% endfor %}
         </p>
         <p>{{ form.submit() }}</p>
-        
 
-        <div  class="form-group ">
-            {{ form.picture.label() }}
-            {{ form.picture(class='form-control-file') }}
-            {% if form.picture.errors %}
-                {% for eroor in form.picture.errors %}
-                    <span class="text-danger">{{ eroor }}</span></br>
-                {% endfor %}
-
-
-            {% endif %}
-
-        </div>
-        <div class="form-group ">
-            {{ form.submit(class="btn btn-outline-info") }}
-        </div>
     </form>
 {% endblock %}

@@ -33,7 +33,7 @@ class Student(UserMixin, db.Model):
     email = db.Column(db.String(50), unique=True, nullable=False)
     password=db.Column(db.String(100),nullable=False)
     university = db.Column(db.String(50), nullable=True)
-    image_file = db.Column(db.String(50), nullable=False, default='default.jpg')
+    image_file = db.Column(db.String(50), nullable=False, default='default.jpeg')
     about_me = db.Column(db.String(140))
     partecipations = db.relationship('Event', secondary=partecipation, backref=db.backref('partecipants', lazy='joined'))
     followed = db.relationship(
